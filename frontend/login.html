@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - Punch Clock</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 400px;
+      margin: 100px auto;
+      text-align: center;
+    }
+    input, button {
+      padding: 10px;
+      margin: 8px;
+      width: 90%;
+    }
+    .logo {
+      width: 150px;
+      margin-bottom: 10px;
+    }
+    .company-name {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 30px;
+    }
+  </style>
+</head>
+<body>
+
+  <img src="logo.jpg" alt="Crockett CPA Logo" class="logo">
+  <div class="company-name">Crockett CPA</div>
+
+  <h2>Login</h2>
+  <input id="username" placeholder="Username"><br>
+  <input id="password" placeholder="Password" type="password"><br>
+  <button onclick="login()">Login</button>
+  <p id="status"></p>
+  <p>Don't have an account? <a href="register.html">Register here</a></p>
+
+  <script>
+    async function login() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      if (!username || !password) {
+        document.getElementById('status').innerText = "Please enter both username and password.";
+        return;
+      }
+
+      const res = await fetch('http://127.0.0.1:5000/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+        credentials: 'include'
+      });
+
+      const data = await res.json();
+      document.getElementById('status').innerText = data.message;
+
+      if (res.status === 200) {
+        setTimeout(async () => {
+          const check = await fetch('http://127.0.0.1:5000/whoami', {
+            credentials: 'include'
+          });
+
+          if (check.status === 200) {
+            const user = await check.json();
+            if (user.is_admin) {
+              window.location.href = 'admin.html';
+            } else {
+              window.location.href = 'index.html';
+            }
+          } else {
+            alert("Session failed to initialize. Please try again.");
+          }
+        }, 300);
+      }
+    }
+  </script>
+</body>
+</html>

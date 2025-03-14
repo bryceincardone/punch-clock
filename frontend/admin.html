@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Crockett CPA - Admin Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1000px;
+      margin: 40px auto;
+      text-align: center;
+    }
+    img {
+      max-height: 80px;
+      display: block;
+      margin: 0 auto 10px;
+    }
+    h1 {
+      margin-bottom: 5px;
+    }
+    input, button, select {
+      padding: 10px;
+      margin: 5px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+    }
+    th {
+      background-color: #f0f0f0;
+    }
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <img src="logo.jpg" alt="Crockett CPA Logo">
+  <h1>Crockett CPA</h1>
+  <h2>Admin Dashboard</h2>
+  <div>Logged in as: <span id="adminUser"></span></div>
+
+  <h3>Add New User</h3>
+  <input id="newUsername" placeholder="Username">
+  <input id="newPassword" placeholder="Password" type="password">
+  <button onclick="addUser()">Add User</button>
+
+  <h3>All Users</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Username</th>
+        <th>Admin</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="userTableBody"></tbody>
+  </table>
+
+  <h3>Payroll & Logs Export</h3>
+  <div class="button-row">
+    <input type="date" id="startDate">
+    <input type="date" id="endDate">
+    <button onclick="filterLogs()">Filter Logs</button>
+    <button onclick="exportFilteredLogs()">Export Filtered Logs to CSV</button>
+    <button onclick="exportPayroll()">Export Payroll CSV</button>
+    <button onclick="exportJobSummary()">Export Job Summary CSV</button>
+  </div>
+
+  <h3>Filter & Edit Time Logs</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Action</th>
+        <th>Timestamp</th>
+        <th>Job Name</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="logsTableBody"></tbody>
+  </table>
+
+  <p id="status"></p>
+  <br>
+  <button onclick="logout()">Logout</button>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const today = new Date().toISOString().split("T")[0];
+      document.getElementById("startDate").value = today;
+      document.getElementById("endDate").value = today;
+      fetchCurrentUser();
+      loadUsers();
+      loadLogs();
+    });
+
+    async function fetchCurrentUser() {
+      const res = await fetch('http://127.0.0.1:5000/whoami', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        document.getElementById('adminUser').innerText = data.username;
+      }
+    }
+
+    async function loadUsers() {
+      const res = await fetch('http://127.0.0.1:5000/admin_users', { credentials: 'include' });
+      const users = await res.json();
+      const tbody = document.getElementById('userTableBody');
+      tbody.innerHTML = '';
+      users.forEach(user => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${user.id}</td>
+          <td>${user.username}</td>
+          <td>${user.is_admin ? 'Yes' : 'No'}</td>
+          <td>
+            <button onclick="toggleAdmin(${user.id})">Toggle Admin</button>
+            <button onclick="deleteUser(${user.id})">Delete</button>
+          </td>`;
+        tbody.appendChild(row);
+      });
+    }
+
+    async function addUser() {
+      const username = document.getElementById('newUsername').value;
+      const password = document.getElementById('newPassword').value;
+      const res = await fetch('http://127.0.0.1:5000/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      document.getElementById('status').innerText = data.message;
+      loadUsers();
+    }
+
+    async function toggleAdmin(userId) {
+      const res = await fetch(`http://127.0.0.1:5000/admin_toggle_admin/${userId}`, {
+        method: 'PATCH',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      document.getElementById('status').innerText = data.message;
+      loadUsers();
+    }
+
+    async function deleteUser(userId) {
+      if (!confirm("Delete this user?")) return;
+      const res = await fetch(`http://127.0.0.1:5000/admin_delete_user/${userId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      document.getElementById('status').innerText = data.message;
+      loadUsers();
+    }
+
+    async function logout() {
+      await fetch('http://127.0.0.1:5000/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      window.location.href = 'login.html';
+    }
+
+    async function loadLogs() {
+      const start = document.getElementById('startDate').value;
+      const end = document.getElementById('endDate').value;
+      const res = await fetch(`http://127.0.0.1:5000/admin_logs?start=${start}&end=${end}`, {
+        credentials: 'include'
+      });
+      const logs = await res.json();
+      const tbody = document.getElementById('logsTableBody');
+      tbody.innerHTML = '';
+      logs.forEach(log => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${log.username}</td>
+          <td>${log.action}</td>
+          <td><input type="datetime-local" value="${formatForInput(log.timestamp)}" onchange="editLog(${log.log_id}, this.value, null)"></td>
+          <td><input value="${log.job_name || ''}" onchange="editLog(${log.log_id}, null, this.value)"></td>
+          <td><button onclick="deleteLog(${log.log_id})">Delete</button></td>`;
+        tbody.appendChild(row);
+      });
+    }
+
+    function formatForInput(timestamp) {
+      const dt = new Date(timestamp);
+      const offset = dt.getTimezoneOffset();
+      const local = new Date(dt.getTime() - offset * 60000);
+      return local.toISOString().slice(0, 16);
+    }
+
+    async function editLog(logId, newTime, newJob) {
+      const body = { log_id: logId };
+      if (newTime) body.timestamp = newTime;
+      if (newJob !== null) body.job_name = newJob;
+      const res = await fetch('http://127.0.0.1:5000/admin_edit_log', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      document.getElementById('status').innerText = data.message;
+    }
+
+    async function deleteLog(logId) {
+      const res = await fetch(`http://127.0.0.1:5000/admin_delete_log/${logId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      document.getElementById('status').innerText = data.message;
+      loadLogs();
+    }
+
+    function filterLogs() {
+      loadLogs();
+    }
+
+    function exportFilteredLogs() {
+      const start = document.getElementById('startDate').value;
+      const end = document.getElementById('endDate').value;
+      window.open(`http://127.0.0.1:5000/admin_logs_export_csv?start=${start}&end=${end}`, '_blank');
+    }
+
+    function exportPayroll() {
+      const start = document.getElementById('startDate').value;
+      const end = document.getElementById('endDate').value;
+      window.open(`http://127.0.0.1:5000/admin_export_csv?start=${start}&end=${end}`, '_blank');
+    }
+
+    function exportJobSummary() {
+      window.open(`http://127.0.0.1:5000/admin_export_job_summary`, '_blank');
+    }
+  </script>
+
+</body>
+</html>

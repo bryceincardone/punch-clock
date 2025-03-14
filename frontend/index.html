@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Welcome - Punch Clock</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 60px auto;
+      text-align: center;
+    }
+    .logo {
+      width: 150px;
+      margin-bottom: 10px;
+    }
+    .company-name {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 30px;
+    }
+    input, button, select {
+      padding: 10px;
+      margin: 8px;
+      width: 90%;
+      max-width: 400px;
+    }
+    .top-right {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <img src="logo.jpg" alt="Crockett CPA Logo" class="logo">
+  <div class="company-name">Crockett CPA</div>
+
+  <div class="top-right" id="userInfo">Logged in as: </div>
+
+  <h1>Welcome to Punch Clock</h1>
+
+  <input id="jobName" placeholder="Enter Job Name"><br>
+  <button onclick="clockIn()">Clock In</button>
+  <button onclick="clockOut()">Clock Out</button><br><br>
+  <button onclick="logout()">Logout</button>
+
+  <p id="status"></p>
+
+  <script>
+    async function clockIn() {
+      const jobName = document.getElementById('jobName').value.trim();
+      if (!jobName) {
+        document.getElementById('status').innerText = "Please enter the job name before clocking in.";
+        return;
+      }
+
+      const res = await fetch('http://127.0.0.1:5000/clockin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ job_name: jobName }),
+        credentials: 'include'
+      });
+
+      const data = await res.json();
+      document.getElementById('status').innerText = data.message;
+    }
+
+    async function clockOut() {
+      const res = await fetch('http://127.0.0.1:5000/clockout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      const data = await res.json();
+      document.getElementById('status').innerText = data.message;
+    }
+
+    async function logout() {
+      await fetch('http://127.0.0.1:5000/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+      window.location.href = 'login.html';
+    }
+
+    async function showUserInfo() {
+      const res = await fetch('http://127.0.0.1:5000/whoami', {
+        credentials: 'include'
+      });
+      if (res.status === 200) {
+        const data = await res.json();
+        document.getElementById('userInfo').innerText = `Logged in as: ${data.username}`;
+      }
+    }
+
+    showUserInfo();
+  </script>
+</body>
+</html>
