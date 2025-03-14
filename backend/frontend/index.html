@@ -2,66 +2,66 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Welcome - Punch Clock</title>
+  <title>Dashboard - Punch Clock | Crockett CPA</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 60px auto;
+      max-width: 500px;
+      margin: 80px auto;
       text-align: center;
     }
-    .logo {
-      width: 150px;
+    img {
+      width: 120px;
       margin-bottom: 10px;
     }
-    .company-name {
-      font-size: 24px;
-      font-weight: bold;
-      margin-bottom: 30px;
+    h1 {
+      margin-bottom: 5px;
     }
-    input, button, select {
-      padding: 10px;
-      margin: 8px;
-      width: 90%;
-      max-width: 400px;
-    }
-    .top-right {
+    #topbar {
       position: absolute;
-      top: 10px;
+      top: 15px;
       right: 20px;
       font-size: 14px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px 0;
+      width: 90%;
     }
   </style>
 </head>
 <body>
 
-  <img src="logo.jpg" alt="Crockett CPA Logo" class="logo">
-  <div class="company-name">Crockett CPA</div>
+  <div id="topbar">
+    Logged in as: <span id="userDisplay"></span>
+    <button onclick="logout()">Logout</button>
+  </div>
 
-  <div class="top-right" id="userInfo">Logged in as: </div>
-
-  <h1>Welcome to Punch Clock</h1>
+  <img src="logo.jpg" alt="Crockett CPA Logo">
+  <h1>Crockett CPA</h1>
+  <h2>Welcome to Punch Clock</h2>
 
   <input id="jobName" placeholder="Enter Job Name"><br>
   <button onclick="clockIn()">Clock In</button>
-  <button onclick="clockOut()">Clock Out</button><br><br>
-  <button onclick="logout()">Logout</button>
+  <button onclick="clockOut()">Clock Out</button>
 
   <p id="status"></p>
 
   <script>
+    const BASE_URL = 'https://punch-clock.onrender.com';
+
     async function clockIn() {
       const jobName = document.getElementById('jobName').value.trim();
       if (!jobName) {
-        document.getElementById('status').innerText = "Please enter the job name before clocking in.";
+        document.getElementById('status').innerText = "Please enter job name.";
         return;
       }
 
-      const res = await fetch('http://127.0.0.1:5000/clockin', {
+      const res = await fetch(`${BASE_URL}/clockin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ job_name: jobName }),
-        credentials: 'include'
+        credentials: 'include',
+        body: JSON.stringify({ job_name: jobName })
       });
 
       const data = await res.json();
@@ -69,7 +69,7 @@
     }
 
     async function clockOut() {
-      const res = await fetch('http://127.0.0.1:5000/clockout', {
+      const res = await fetch(`${BASE_URL}/clockout`, {
         method: 'POST',
         credentials: 'include'
       });
@@ -79,24 +79,19 @@
     }
 
     async function logout() {
-      await fetch('http://127.0.0.1:5000/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
+      await fetch(`${BASE_URL}/logout`, { method: 'POST', credentials: 'include' });
       window.location.href = 'login.html';
     }
 
-    async function showUserInfo() {
-      const res = await fetch('http://127.0.0.1:5000/whoami', {
-        credentials: 'include'
-      });
+    async function loadUser() {
+      const res = await fetch(`${BASE_URL}/whoami`, { credentials: 'include' });
       if (res.status === 200) {
-        const data = await res.json();
-        document.getElementById('userInfo').innerText = `Logged in as: ${data.username}`;
+        const user = await res.json();
+        document.getElementById('userDisplay').innerText = user.username;
       }
     }
 
-    showUserInfo();
+    loadUser();
   </script>
 </body>
 </html>

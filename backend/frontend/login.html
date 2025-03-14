@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Login - Punch Clock</title>
+  <title>Login - Punch Clock | Crockett CPA</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -10,35 +10,42 @@
       margin: 100px auto;
       text-align: center;
     }
+    img {
+      width: 120px;
+      margin-bottom: 15px;
+    }
+    h1 {
+      margin-bottom: 5px;
+    }
     input, button {
       padding: 10px;
       margin: 8px;
       width: 90%;
     }
-    .logo {
-      width: 150px;
-      margin-bottom: 10px;
-    }
-    .company-name {
-      font-size: 24px;
-      font-weight: bold;
-      margin-bottom: 30px;
+    a {
+      display: block;
+      margin-top: 10px;
+      text-decoration: none;
+      color: #333;
     }
   </style>
 </head>
 <body>
 
-  <img src="logo.jpg" alt="Crockett CPA Logo" class="logo">
-  <div class="company-name">Crockett CPA</div>
-
+  <img src="logo.jpg" alt="Crockett CPA Logo">
+  <h1>Crockett CPA</h1>
   <h2>Login</h2>
+
   <input id="username" placeholder="Username"><br>
   <input id="password" placeholder="Password" type="password"><br>
   <button onclick="login()">Login</button>
   <p id="status"></p>
-  <p>Don't have an account? <a href="register.html">Register here</a></p>
+
+  <a href="register.html">Don't have an account? Register here</a>
 
   <script>
+    const BASE_URL = 'https://punch-clock.onrender.com';
+
     async function login() {
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value.trim();
@@ -48,7 +55,7 @@
         return;
       }
 
-      const res = await fetch('http://127.0.0.1:5000/login', {
+      const res = await fetch(`${BASE_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -60,10 +67,7 @@
 
       if (res.status === 200) {
         setTimeout(async () => {
-          const check = await fetch('http://127.0.0.1:5000/whoami', {
-            credentials: 'include'
-          });
-
+          const check = await fetch(`${BASE_URL}/whoami`, { credentials: 'include' });
           if (check.status === 200) {
             const user = await check.json();
             if (user.is_admin) {
